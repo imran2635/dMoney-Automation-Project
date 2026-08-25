@@ -87,81 +87,8 @@ The project generates an HTML report after every test execution.
 
 ![Playwright HTML Report](Assets/Playwright-Report.png)
 
-## CI/CD
-
-Every push/PR to `main` runs the full suite via GitHub Actions
-(`.github/workflows/playwright.yml`) and uploads the HTML report as a build
-artifact. Add all the same values from your `.env` as **repo secrets** under
-**Settings → Secrets and variables → Actions** before pushing.
-
-## Implementation notes (things that weren't obvious upfront)
-
-These were all found by running against the live site and reading real
-Playwright error snapshots — worth knowing if you extend this suite:
-
-- **The register page has two "Sign Up" links** (header nav + hero CTA)
-  pointing to the same place, so `signup()` navigates straight to
-  `/register` instead of clicking either one.
-- **"Account Type (Role)" and "Account Status" aren't linked to their
-  inputs via `<label for>`/`aria-labelledby`** — only visually adjacent
-  text. `getByLabel()` can't find them; both are selected by role/position
-  instead (see `selectRole()` in `auth.service.js` and `activateAgent()`
-  in `admin.service.js`).
-- **MUI buttons apply `text-transform: uppercase` visually**, but the real
-  DOM text stays as authored (e.g. "View", not "VIEW"). Don't trust visual
-  casing from a screenshot for exact-match locators — use `exact: false`
-  (which is also case-insensitive) unless you've confirmed the real text.
-- **Agent activation has no direct "Activate" button** — the real flow is
-  User List → View → Edit User → Account Status dropdown → Active → Save
-  Changes.
-- **The User List isn't reliably sorted for a fresh agent** — this is a
-  shared practice platform used by many students concurrently, so a
-  just-registered agent can get pushed off page 1 by other students'
-  activity between signup and activation. `activateAgent()` uses the
-  platform's real "Search by Email" feature instead of relying on sort
-  order or pagination.
-- **The User List page has two comboboxes once pagination appears**
-  ("Search Type" and "Rows per page") — locators need to disambiguate
-  between them (`.first()`, or filtering by current visible text).
-
-## Known limitations
-
-- OTP retrieval assumes emails from dMoney reliably contain the phrase
-  `is:` immediately before the 4-digit code, with a bare-4-digit fallback
-  regex if that phrase isn't found. If the email template changes, update
-  `GmailOtpReader.extractOtp()`.
-- Because this depends on real email delivery timing, a fetched OTP can
-  occasionally already be expired/superseded by a newer one by the time
-  it's submitted. `resolveOtpIfPresent()` in `auth.service.js` handles this
-  automatically — if the site responds "Invalid OTP", it fetches a fresh
-  code (searching only from that failed attempt forward) and retries, up
-  to 3 attempts, before failing the test.
-- The global Playwright test timeout (180s) is intentionally well above
-  `GmailOtpReader`'s own polling deadline (60s) so a slow-but-successful
-  IMAP poll never gets cut off by the outer test timeout first.
-- Verified locally with multiple consecutive full green runs (all 5 steps)
-  before relying on it for submission.
-- **CI/CD note:** the pipeline is fully configured and correctly automates
-  the entire flow (see `.github/workflows/playwright.yml`), but when run
-  from GitHub Actions' shared cloud IP ranges, the target platform's
-  Cloudflare bot-protection challenges requests to `/admin/*` routes —
-  confirmed consistently across multiple CI runs, including with a virtual
-  display (Xvfb) in headed mode to rule out headless-browser fingerprinting.
-  This is a third-party infrastructure constraint, not a defect in the test
-  suite — the same suite passes reliably every time when run locally.
-  Confirmed with the course instructor that a correctly configured workflow
-  file is sufficient for this submission.
 
 
-## Submission Checklist
 
-- [x] OOP structure (`services/` — one class per role/concern)
-- [x] `node_modules/` and `.env` excluded via `.gitignore`
-- [x] README documented
-- [x] CI/CD pipeline configured (`.github/workflows/playwright.yml`) —
-      blocked from producing a green run by the target platform's
-      Cloudflare protection on GitHub's shared IPs (documented above);
-      confirmed with instructor that a correctly configured workflow is
-      sufficient
-- [x] Playwright HTML report summary screenshot attached (local run, all
-      5 steps passing)
+
+
