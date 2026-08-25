@@ -1,0 +1,14 @@
+node_modules/
+.env
+
+# Playwright artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+blob-report/
+
+# Build output
+dist/
+
+# OS/editor noise
+.DS_Store
